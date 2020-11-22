@@ -56,7 +56,7 @@ class Weather:
         }
 
     def get_current_weather(self):
-        current_time_json = weather_json["current"]
+        current_time_json = self.weather_data["current"]
         current_weather_json = current_time_json["weather"][0]
         time = self.epoch_to_time(current_time_json["dt"])
         sunrise = self.epoch_to_time(current_time_json["sunrise"])
@@ -67,7 +67,7 @@ class Weather:
         return (time, sunrise, sunset, temp, weather, icon)
 
     def get_rest_of_day_hourly_weather(self):
-        hourly_weather = weather_json["hourly"]
+        hourly_weather = self.weather_data["hourly"]
         find_index = 1
         while self.epoch_to_time(hourly_weather[find_index]["dt"]) != "00:00":
             find_index += 1
@@ -84,12 +84,12 @@ class Weather:
         return result
 
     def get_tomorrow_hourly_weather(self):
-        hourly_weather = weather_json["hourly"]
+        hourly_weather = self.weather_data["hourly"]
         find_index = 1
         while self.epoch_to_time(hourly_weather[find_index]["dt"]) != "00:00":
             find_index += 1
 
-        tomorrow = hourly_weather[find_index:find_index+24]
+        tomorrow = hourly_weather[find_index:find_index + 24]
         result = []
         for hour in tomorrow:
             time = self.epoch_to_time(hour["dt"])
@@ -99,18 +99,40 @@ class Weather:
             pop = hour["pop"]
             result.append((time, temp, weather, icon, pop))
         return result
-    
+
+    def get_daily_weather(self):
+        daily_weather = self.weather_data["daily"]
+        result = []
+        for day in daily_weather:
+            time = self.epoch_to_day(day["dt"])
+            temp = day["temp"]
+            temp_day = temp["day"]
+            temp_min = temp["min"]
+            temp_max = temp["max"]
+            feels_like = day["feels_like"]["day"]
+            weather = day["weather"][0]["description"]
+            icon = self.associate_id_to_icon(day["weather"][0]["icon"])
+            pop = day["pop"]
+            result.append((time, (temp_day, temp_min, temp_max), feels_like,
+                          weather, icon))
+        return result
+
     def epoch_to_time(self, epoch):
         return datetime.fromtimestamp(epoch).strftime('%H:%M')
+
+    def epoch_to_day(self, epoch):
+        return datetime.fromtimestamp(epoch).strftime('%d %b')
+
 
     def associate_id_to_icon(self, icon_code):
         """ Associates icons to the specified ids at
         https://openweathermap.org/weather-conditions
         """
         return self.icons[icon_code[0:2]]
-    
+
 
 weather_json = json.load(open("weather.json", "r"))
 weather = Weather(weather_json)
 # print(weather.get_current_weather())
-print(weather.get_tomorrow_hourly_weather())
+# print(weather.get_tomorrow_hourly_weather())
+print(weather.get_daily_weather())
